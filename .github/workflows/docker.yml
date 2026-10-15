@@ -1,0 +1,38 @@
+name: ML Model Docker CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: student-ml-app:latest
+
+      - name: Test Docker container
+        run: |
+          docker run -d --name student-ml-test -p 5000:5000 student-ml-app:latest
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:5000/health; then
+              echo "ML application is running successfully"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs student-ml-test
+          exit 1
